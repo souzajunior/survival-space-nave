@@ -1,0 +1,399 @@
+#-------------------------------------------------------------------------------
+# Name:        Survival Space Nave
+# Purpose:
+#
+# Author:      Junior Souza
+#
+# Created:     05/07/2017
+# Copyright:   (c) Projeto AP 1 2017 - IFCE Campus Crato
+# Licence:     <>
+#-------------------------------------------------------------------------------
+
+
+#Importando dados necessarios para o codigo
+import pygame,sys,os, time
+from pygame.locals import *
+import random
+####################################
+#tamanho da tela
+width,height = 700,700
+################################################################################
+
+# Classes do jogo & inicializao padrao com parametros necessarios
+class Aster(pygame.sprite.Sprite): #inimigo
+    def __init__(self,posx,posy,imagem,tipo):
+        pygame.sprite.Sprite.__init__(self)
+	#pygame.image.load('arquivos/aster1.png') pygame.image.load('arquivos/aster2.png') 
+        self.imagemAster = imagem #carregamento da imagem do asteroide
+
+        self.rect = self.imagemAster.get_rect() #transformando a imagem em dimensoes para o pygame poder associar suas funcoes
+        self.rect.top = posy #posy que sera posicionado o topo do rect da sprite
+        self.rect.left = posx #posx que sera posicionado o topo do rect da sprite
+        self.ciclo = 0
+        self.tipo = tipo
+        self.velocidadeDescida = 2 if (self.tipo == 1) else 11 #velocidade que o asteroide ira mudar em relacao a posy
+
+    def comportamento(self,px2,py2):
+        #Sera a posicao y do objeto sendo aumentada ao encontro da nave do player
+        self.rect.top += self.velocidadeDescida
+        if (self.rect.top > height):
+            self.rect.top = py2
+            self.rect.left = px2
+            self.velocidadeDescida += 1
+            if (self.tipo == 2):
+                if (self.velocidadeDescida >= 13):
+                    self.velocidadeDescida = 11
+            else:
+                if (self.velocidadeDescida >= 15):
+                    self.ciclo += 1
+                    if (self.ciclo == 1):
+                        self.velocidadeDescida = 7
+                    elif (self.ciclo == 2):
+                        self.velocidadeDescida = 8
+                    elif (self.ciclo == 3):
+                        self.velocidadeDescida = 9
+                    elif (self.ciclo == 4):
+                        self.velocidadeDescida = 10
+                    elif (self.ciclo == 5):
+                        self.velocidadeDescida = 11
+                    elif (self.ciclo == 6):
+                        self.velocidadeDescida = 12
+                    elif (self.ciclo >= 7):
+                        self.velocidadeDescida = 13
+                        self.ciclo = 7
+
+    def colocar(self,sup):
+        #Ira colocar a imagem do asteroide na tela
+        sup.blit(self.imagemAster,self.rect)
+
+    def colocarColidiu(self, sup): #Funcao para colocar o asteroide na pos aleatoria apos a colisao
+        if (self.tipo == 2):
+            self.rect.centerx = random.choice([100,120,140,160,180,200,220,240,260,280,300,320,340,360,380,400,420,440,460]) #posicoes de x
+            self.rect.centery = random.choice([5,10,15,20]) #posicoes de y
+            sup.blit(self.imagemAster,self.rect)
+        else:
+            self.rect.centerx = random.choice([25,40,60,80,115,125,135,145,150,250,350,450,515,535,545,550,560,565,570,580,585,600,610,625,650,660,670]) #posicoes de x
+            self.rect.centery = random.choice([5,10,15,20]) #posicoes de y
+            sup.blit(self.imagemAster,self.rect)
+
+
+################################################################################
+class Vidas(pygame.sprite.Sprite):
+    def __init__(self,posx,posy):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.imagemVida = pygame.image.load('arquivos/vidas.png')
+
+        self.rect = self.imagemVida.get_rect() #transformando a imagem em dimensoes para o pygame poder associar suas funcoes
+        self.rect.top = posy #posy que sera posicionado o topo do rect da minha sprite
+        self.rect.left = posx #posx que sera posicionado o topo do rect da minha sprite
+
+    def colocar(self,sup):
+        #Ira colocar a imagem da vida na tela
+        sup.blit(self.imagemVida,self.rect)
+
+    def colocarPerdeu(self, sup): #Funcao para colocar a imagem da vida fora da tela
+        self.rect.centerx = width + 50
+        self.rect.centery = height + 50
+        sup.blit(self.imagemVida,self.rect)
+
+
+################################################################################
+contador = 0
+#Definicao da classe da Nave
+class Nave(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.imagemNave = pygame.image.load('arquivos/naveprin.png') #carregamento da imagem da nave
+
+        self.rect = self.imagemNave.get_rect() #transformando a imagem em dimensoes para o pygame poder associar suas funcoes
+        self.rect.centerx = width/2 #posicao x da nave
+        self.rect.centery = height-30 #posicao y da nave
+
+        self.velocidade = 8 #Velocidade que a nave vai se mover para os lados e cima
+        self.velocidadeDesc = 5 #Velocidade que a nave vai se mover para baixo
+
+    def colocar(self, sup): #Funcao para colocar a nave na tela
+        sup.blit(self.imagemNave,self.rect)
+
+    def colocarColidiu(self, sup): #Funcao para colocar a nave na pos inicial apos a colisao
+        self.rect.centerx = width/2
+        self.rect.centery = height-30
+        sup.blit(self.imagemNave,self.rect)
+
+    def movimentacao(self): #Funcao para a movimentacao de acordo com as teclas
+        #Inicializacao dos parametros necessarios para o uso das funcoes da biblioteca Pygame
+        pygame.event.pump()
+        tecla = pygame.key.get_pressed()
+        #Verificacao de quais teclas foram apertadas e suas respectivas funcoes
+        if (tecla[pygame.K_RIGHT] or tecla[pygame.K_d]):
+            if (tecla[pygame.K_DOWN]):
+                self.rect.right += self.velocidadeDesc
+            else:
+                self.rect.right += self.velocidade
+            if (self.rect.right > 700):
+                self.rect.left = 5
+
+        if (tecla[pygame.K_LEFT] or tecla[pygame.K_a]):
+            if (tecla[pygame.K_DOWN]):
+                self.rect.left -= self.velocidadeDesc
+            else:
+                self.rect.left -= self.velocidade
+            if (self.rect.left < 0):
+                self.rect.right = 695
+
+        if (tecla[pygame.K_UP] or tecla[pygame.K_w]):
+            self.rect.top -= self.velocidade
+            if (self.rect.top < 0):
+                self.rect.top = 645
+
+        if (tecla[pygame.K_DOWN] or tecla[pygame.K_s]):
+            self.rect.top += self.velocidadeDesc
+            if (self.rect.top > 645):
+                self.rect.top = 645
+################################################################################
+
+def sair(): #Funcao para sair do jogo
+    rodando = False
+    pygame.quit()
+    sys.exit()
+def atualiza(): #Atualizar a tela
+    pygame.display.update()
+
+def telaInicial(): #Funcao da tela inicial
+    ImagemInicial = pygame.image.load('arquivos/telainicial.png')
+    som_inicial = pygame.mixer.Sound('arquivos/sominicial.ogg')
+    tela = pygame.display.set_mode([width,height])
+    iniciou = False
+    while (iniciou == False):
+        som_inicial.set_volume(0.05)
+        som_inicial.play()
+        tela.blit(ImagemInicial,(0,0))
+        for x in pygame.event.get():
+            if (x.type == pygame.QUIT):
+                sair()
+            if x.type == pygame.KEYDOWN:
+                if x.key == pygame.K_RETURN:
+                    iniciou = True
+                elif x.key == pygame.K_ESCAPE:
+                    sair()
+        if (iniciou == True):
+            som_inicial.stop()
+        atualiza()
+
+def jogarNovamente(pnts): #Funcao de jogar novamente
+    som_perdeu = pygame.mixer.Sound('arquivos/somperdeu.ogg')
+    fimJogo = pygame.image.load('arquivos/telafinal.png')
+    font_score2 = pygame.font.SysFont("monospace", 35)
+
+    jogar_novamente = False
+    som = False
+    tela = pygame.display.set_mode([width,height])
+    while (jogar_novamente == False):
+        tela.blit(fimJogo,(0,0))
+        tela.blit(font_score2.render("Pontos feitos: " + str(pnts), 1, (250,250,250)), (160, 110))
+
+        for axy in pygame.event.get():
+            if (axy.type == pygame.QUIT):
+                sair()
+            if (axy.type == pygame.KEYDOWN):
+                if (axy.key == pygame.K_RETURN):
+                    som_perdeu.stop()
+                    jogar_novamente = True
+                    main()
+                elif (axy.key == pygame.K_ESCAPE):
+                    sair()
+        if (som == False):
+            som_perdeu.set_volume(0.3)
+            som_perdeu.play()
+            som = True
+        atualiza()
+
+
+#Laco principal
+def main():
+    #Definicoes principais e atributos adicionais
+    ###########################################################
+    pygame.init()
+    tela = pygame.display.set_mode([width,height])
+    pygame.display.set_caption('Survival Space Nave')
+    frames = pygame.time.Clock() #Limitacao de frames por segundo a cada verificao no ciclo principal do while
+    ###########################################################
+    #Imagens carregadas
+    ImagemFundo = pygame.image.load('arquivos/fundotela.png') #Carregamento da imagem do fundo
+    ###########################################################
+    aux = 0 #Auxiliar para o Loop do background
+
+    #Instaciamento dos objetos das classes criadas
+    player = Nave()
+    vidas = Vidas(620,15)
+    vidas2 = Vidas(640,15)
+    vidas3 = Vidas(660,15)
+    #######################################
+	
+    #Carregamento das imagens
+    img_aster1 = pygame.image.load('arquivos/aster1.png')
+    img_aster2 = pygame.image.load('arquivos/aster2.png')
+    img_aster3_4 = pygame.image.load('arquivos/aster3.png')
+
+    #Posicao inicial do asteroide
+    x = random.choice([30,50,55,70,75,90,95,100,110,120,130,140,200,300,400,500,510,520,525,530,540,575,590,615,630,640,675])
+    y = random.choice([20,40,60])
+    inimigo = Aster(x,y,img_aster1,1)
+    #########
+    eix = random.choice([25,40,60,80,115,125,135,145,150,250,350,450,515,535,545,550,560,565,570,580,585,600,610,625,650,660,670])
+    eiy = random.choice([20,40,60])
+    inimigo2 = Aster(eix,eiy,img_aster2,1)
+    #########
+    ex = random.choice([100,120,140,160,180,200,220,240,260,280,300,320,340,360,380,400,420,440,460,480,500,520,540,560,580,600,620,640,660,680]) #posicoes de x
+    ey = random.choice([5,10,15,20]) #posicoes de y
+    inimigo3 = Aster(ex,ey,img_aster3_4,2)
+    #########
+    ex2 = random.choice([50,70,90,110,130,150,170,190,210,230,250,270,290,310,330,350,370,390,410,430,450,470,490,510,530,550,570,590,610,630,650,670,690]) #posicoes de x
+    ey2 = random.choice([5,10,15,20]) #posicoes de y
+    inimigo4 = Aster(ex2,ey2,img_aster3_4,2)
+    #########
+
+
+    #Fontes
+    font_vida = pygame.font.SysFont("monospace", 16)
+    font_score = pygame.font.SysFont("monospace", 16)
+
+    #Cores
+    cor_white = (250,250,250)
+    cor_black = (0,0,0)
+
+    #sons
+    som_colidiu = pygame.mixer.Sound('arquivos/explosao.ogg')
+    som_perdeu = pygame.mixer.Sound('arquivos/somperdeu.ogg')
+    som_game = pygame.mixer.Sound('arquivos/somgame.ogg')
+
+    #definicoes para o jogo rodando
+    pygame.key.set_repeat(1) #Teclas pressionadas funcionando por tempo indeterminado
+    fps = 80 #frames por segundo
+    score = 0 #Score inicial
+    rodando = True
+    colidiu = 0 #Quantas vezes a nave colidiu com os asteroides (inicial)
+    iniciou = False
+
+
+    #Funcao da tela inicial
+    telaInicial()
+
+    #Som do jogo apos sair da tela inicial
+    som_game.set_volume(0.04)
+    som_game.play()
+
+
+                                   # Loop do jogo #
+    while (rodando == True): #Enquanto for verdadeiro, ira atualizar a taxa de frames e codigo principal
+        events = pygame.event.get()
+        for event in events:
+            if (event.type == pygame.QUIT):
+                sair()
+            if (event.type == pygame.KEYDOWN):
+                player.movimentacao()
+                if event.key == pygame.K_ESCAPE:
+                    sair()
+
+
+        #Background
+        rel_x = aux % ImagemFundo.get_rect().height
+        tela.blit(ImagemFundo, (0, rel_x - ImagemFundo.get_rect().height))
+        if (rel_x < height):
+            tela.blit(ImagemFundo, (0, rel_x))
+        aux += 2.5
+
+        #Dados na tela
+        frames.tick(fps)
+        tela.blit(font_score.render("Pontos: " + str(score), 1, cor_white), (5, 10))
+        score += 1
+        tela.blit(font_vida.render("Vidas: ", 1, cor_white), (560, 10))
+
+        #Metodos da classe sendo colocados na tela do jogo
+        inimigo.colocar(tela)
+        inimigo2.colocar(tela)
+        vidas.colocar(tela)
+        vidas2.colocar(tela)
+        vidas3.colocar(tela)
+        player.colocar(tela)
+
+        if (score >= 4000): #Verificando se o player atingiu mais que 4000 de pontos, assim o novo asteroide comeca a aparecer na tela
+            ex3 = random.choice([100,120,140,160,180,200,220,240,260,280,300,320,340,360,380,400,420,440,460]) #posicoes de x para o asteroide nascer
+            ey3 = random.choice([5,10,15,20]) #posicoes de y para o asteroide nascer
+            inimigo3.colocar(tela)
+            inimigo3.comportamento(ex3,ey3)
+
+        if (score >= 7000): #Verificando se o player atingiu mais que 7000 de pontos, assim o novo asteroide comeca a aparecer na tela
+            ex4 = random.choice([50,70,90,110,130,150,170,190,210,230,250,270,290,310,330,350,370,390,410,430,450,470,490]) #posicoes de x para o asteroide nascer
+            ey4 = random.choice([5,10,15,20]) #posicoes de y para o asteroide nascer
+            inimigo4.colocar(tela)
+            inimigo4.comportamento(ex3,ey3)
+
+
+        #Comportamento dos asteroides iniciais
+        x2 = random.choice([30,50,55,70,75,90,95,100,110,120,130,140,200,210,230,240,290,300,310,320,330,340,400,500,510,520,530,540,525,575,590,665])
+        y2 = random.choice([5,10,15,20,25])
+        inimigo.comportamento(x2,y2)
+
+        eix2 = random.choice([25,40,60,80,115,125,135,145,150,220,250,260,270,280,350,360,370,380,390,450,550,560,565,570,600,625,650,660,670])
+        eiy2 = random.choice([5,10,15,20,25])
+        inimigo2.comportamento(eix2,eiy2)
+
+        ########################################################################
+
+        #Adicionais colisoes
+        if (player.rect.colliderect(inimigo)):
+            som_colidiu.set_volume(0.2) #Alterar o volume
+            som_colidiu.play() #Executar o som
+            player.colocarColidiu(tela)
+            inimigo.colocarColidiu(tela)
+            inimigo2.colocarColidiu(tela)
+            if (score >= 4000):
+                inimigo3.colocarColidiu(tela)
+            if (score >= 7000):
+                inimigo4.colocarColidiu(tela)
+
+            colidiu += 1
+
+            if (colidiu == 1):
+                vidas3.colocarPerdeu(tela)
+            elif (colidiu == 2):
+                vidas2.colocarPerdeu(tela)
+            elif (colidiu == 3):
+                vidas.colocarPerdeu(tela)
+                rodando = False
+
+        if (player.rect.colliderect(inimigo2)):
+            som_colidiu.set_volume(0.2) #Alterar o volume
+            som_colidiu.play() #Executar o som
+            player.colocarColidiu(tela)
+            inimigo.colocarColidiu(tela)
+            inimigo2.colocarColidiu(tela)
+            if (score >= 4000):
+                inimigo3.colocarColidiu(tela)
+
+            if (score >= 7000):
+                inimigo4.colocarColidiu(tela)
+
+            colidiu += 1
+
+            if (colidiu == 1):
+                vidas3.colocarPerdeu(tela)
+            elif (colidiu == 2):
+                vidas2.colocarPerdeu(tela)
+            elif (colidiu == 3):
+                vidas.colocarPerdeu(tela)
+                rodando = False
+        ########################################################################
+
+
+        #Codigos acima - Atualizacao da tela com os codigos
+        atualiza()
+
+    #Tela de jogar novamente
+    som_game.stop()
+    jogarNovamente(score)
+
+main()
